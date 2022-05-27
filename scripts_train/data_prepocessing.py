@@ -23,6 +23,6 @@ def preprocess_data(training_embeddings, meta_train):
     cell_type_df = pd.RangeIndex(len(cell_type_df))
     merged_df = df.join(df_processed['cell_type'])
     merged_df.to_csv('data\opt_training_embeddings_processed.csv')
-    print('Completed!') 
+    print('Completed preprocessing data!') 
     return merged_df
 
