@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from datetime import datetime
 import pandas as pd
 
 # Preprocess and return a dataframe of training datac

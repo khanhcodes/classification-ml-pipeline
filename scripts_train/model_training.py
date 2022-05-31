@@ -8,6 +8,7 @@ from sklearn.svm import SVC
 from sklearn.multiclass import OneVsRestClassifier
 from imblearn.over_sampling import SMOTE
 import numpy as np
+import pickle
 
 # Train the model based on training data and return the model
 def train_model(training_data, model_name):
@@ -25,29 +26,33 @@ def train_model(training_data, model_name):
         logReg_model = LogisticRegression(multi_class='ovr')
         print("Training the model...")
         logReg_model.fit(X_train_res, y_train_res)
+        pickle.dump(logReg_model, open('LR_model.pkl', 'wb'))
         print("Completed training logistic regression model!")
-        return logReg_model
+        print("Your model is now saved in the folder as a pickle file.")
     elif model_name == "KNN":
         knn_model = KNeighborsClassifier(n_neighbors=10)
         knn_ovr = OneVsRestClassifier(knn_model)
         print("Training the model...")
         knn_ovr.fit(X_train_res, y_train_res)
+        pickle.dump(knn_ovr, open('KNN_model.pkl', 'wb'))
         print("Completed training KNN model!")
-        return knn_ovr
+        print("Your model is now saved in the folder as a pickle file.")
     elif model_name == "RF":
         rf = RandomForestClassifier()
         rf_ovr = OneVsRestClassifier(rf)
         print("Training the model...")
         rf_ovr.fit(X_train_res, y_train_res)
+        pickle.dump(rf_ovr, open('RF_model.pkl', 'wb'))
         print("Completed training Random Forest model!")
-        return rf_ovr
+        print("Your model is now saved in the folder as a pickle file.")
     else: 
         svm = SVC()
         svm_ovr = OneVsRestClassifier(svm)
         print("Training the model...")
         svm_ovr.fit(X_train_res, y_train_res)
+        pickle.dump(svm_ovr, open('SVM_model.pkl', 'wb'))
         print("Completed training SVM model!")
-        return svm_ovr
+        print("Your model is now saved in the folder as a pickle file.")
 
     
         

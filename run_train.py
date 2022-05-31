@@ -8,13 +8,11 @@ import os
 import argparse
 import sys
 import time
-from tokenize import String
 
 from scripts_train.data_prepocessing import preprocess_data
 from scripts_train.model_training import train_model
 
 # Prepocess training data
-
 
 def get_parsed_args():
 
@@ -37,8 +35,6 @@ def get_parsed_args():
     return args
 
 def main(argv=None):
-    
-    
 
     if argv is None:
         argv = sys.argv
@@ -76,6 +72,8 @@ if __name__ == "__main__":
     main()
 
     print("--- %s seconds ---" % (time.time() - start_time))
+    
+
     
 
 
