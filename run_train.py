@@ -8,9 +8,10 @@ import os
 import argparse
 import sys
 import time
+import pickle 
 
 from scripts_train.data_prepocessing import preprocess_data
-from scripts_train.model_training import train_model
+from scripts_train.model_training import train_model, cross_validate
 
 # Prepocess training data
 
@@ -20,6 +21,12 @@ def get_parsed_args():
     
     ## Required arguments
     # Take in the path of raw training_embeddings file from user
+    parser.add_argument("-d", dest='working_dir', default="./", help="Working directory to store intermediate files of "
+                                                                     "each step. Default: ./ ")
+
+    parser.add_argument("-o", dest='output_dir', default="./", help="Output directory to store the output files. "
+                                                                    "Default: ./ ")
+    
     parser.add_argument("-train", dest= 'train_data_location', help="Provide the relative path to the location of training embeddings file.", 
                         type=str)
 
@@ -41,6 +48,14 @@ def main(argv=None):
     args = get_parsed_args()
 
     ######################################
+    output_dir = args.output_dir
+    if not output_dir.endswith('/'):
+        output_dir = output_dir + '/'
+    else:
+        output_dir = output_dir
+        
+    print('Output path: ', output_dir)
+    
     ##Check whether the files are provided
     if args.train_data_location is not None:
         train_embeddings = args.train_data_location
@@ -53,15 +68,15 @@ def main(argv=None):
         print("Please input the relative path to the meta train file!")
     
     # Prepocess training data
-
     df_train = preprocess_data(train_embeddings, train_meta)
-    
+
     if args.model_name is not None:
         model_name = args.model_name
         if model_name != 'LR' and model_name != 'KNN' and model_name != 'RF' and model_name != 'SVM':
             print("Please use one of 'LR', 'KNN', 'RF', 'SVM' to be model name")
         else: 
-            train_model(df_train, model_name)
+            train_model(df_train, model_name, output_dir)
+            
     else: 
         print("Please input a model name!")
 
