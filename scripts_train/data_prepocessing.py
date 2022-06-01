@@ -3,7 +3,7 @@
 
 import pandas as pd
 
-# Preprocess and return a dataframe of training datac
+# Preprocess and return a dataframe of training data
 def preprocess_data(training_embeddings, meta_train):
     # Transpose the training data
     df_raw = pd.read_csv(training_embeddings, index_col=0)
@@ -22,6 +22,23 @@ def preprocess_data(training_embeddings, meta_train):
     cell_type_df = pd.RangeIndex(len(cell_type_df))
     merged_df = df.join(df_processed['cell_type'])
     merged_df.to_csv('data\opt_training_embeddings_processed.csv')
-    print('Completed preprocessing data!') 
+    print('Completed preprocessing training data!') 
+    return merged_df
+
+# Preprocess and return a dataframe of testing data
+def preprocess_indep_test(indep_testing_embeddings, meta_test):
+    # Transpose the testing data
+    df_raw = pd.read_csv(indep_testing_embeddings, index_col=0)
+    df = df_raw.T
+    
+    # Take the cell-type column from the meta test file and 
+    # add to the testing embeddings to create a testing dataset
+    meta_test_raw_df = pd.read_csv (meta_test)
+    cell_type_df = meta_test_raw_df['cell_type']
+    df.index = pd.RangeIndex(len(df))
+    cell_type_df = pd.RangeIndex(len(cell_type_df))
+    merged_df = df.join(meta_test_raw_df['cell_type'])
+    merged_df.to_csv('data\opt_indep_testing_embeddings_processed.csv')
+    print('Completed preprocessing testing data!') 
     return merged_df
 

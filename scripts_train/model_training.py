@@ -7,6 +7,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.multiclass import OneVsRestClassifier
+from yellowbrick.model_selection import ValidationCurve
 from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
@@ -15,6 +16,9 @@ from matplotlib import pyplot
 import numpy as np
 from numpy import mean
 import pickle
+from pathlib import Path
+
+root = Path(".")
 
 # Train the model based on training data and return the model
 def train_model(training_data, model_name, output_dir):
@@ -33,42 +37,38 @@ def train_model(training_data, model_name, output_dir):
         print("Training the model...")
         logReg_model.fit(X_train_res, y_train_res)
         print("Completed training logistic regression model!")
-        cross_validate(df, logReg_model)
-        
+        cross_validate(df, logReg_model, output_dir, model_name)
         
     elif model_name == "KNN":
         knn_model = KNeighborsClassifier(n_neighbors=10)
         knn_ovr = OneVsRestClassifier(knn_model)
         print("Training the model...")
         knn_ovr.fit(X_train_res, y_train_res)
-        pickle.dump(knn_ovr, open('KNN_model.pkl', 'wb'))
         print("Completed training KNN model!")
-        print("Your model is now saved in the folder as a pickle file.")
+        cross_validate(df, knn_ovr, output_dir, model_name)
         
     elif model_name == "RF":
         rf = RandomForestClassifier()
         rf_ovr = OneVsRestClassifier(rf)
         print("Training the model...")
         rf_ovr.fit(X_train_res, y_train_res)
-        pickle.dump(rf_ovr, open('RF_model.pkl', 'wb'))
         print("Completed training Random Forest model!")
-        print("Your model is now saved in the folder as a pickle file.")
+        cross_validate(df, rf_ovr, output_dir, model_name)
         
     else: 
         svm = SVC()
         svm_ovr = OneVsRestClassifier(svm)
         print("Training the model...")
         svm_ovr.fit(X_train_res, y_train_res)
-        pickle.dump(svm_ovr, open('SVM_model.pkl', 'wb'))
         print("Completed training SVM model!")
-        print("Your model is now saved in the folder as a pickle file.")
+        cross_validate(df, svm_ovr, output_dir, model_name)
 
 def save_model(path, filename):
     fullpath = os.path.join(path, filename)
     print("The complete path to the saved model is ", fullpath)
     
-#This method performs a sensitivity analysis of k values and k-fold cross validation
-def cross_validate(training_data, model):
+# Perform a sensitivity analysis of k values and k-fold cross validation
+def cross_validate(training_data, model, output_dir, name):
     df = training_data
     X_train = df.iloc[: , :-1]
     y_raw = df.iloc[: , -1:]
@@ -76,7 +76,7 @@ def cross_validate(training_data, model):
     
     print("----------------------------------------------")
     print("Started configuring k-fold cross validation...")
-    folds = range(2, 4)
+    folds = range(2, 3)
     means, mins, maxs = list(),list(),list()
 
     for k in folds:
@@ -92,15 +92,19 @@ def cross_validate(training_data, model):
         maxs.append(k_max - k_mean)
         # line plot of k mean values with min/max error bars
     pyplot.errorbar(folds, means, yerr=[mins, maxs], fmt='o')
-    pyplot.savefig("mean_accuracy_k_fold_cross_validation.png")
+    pyplot.xlabel("Fold")
+    pyplot.ylabel("Mean accuracy score")
+    pyplot.title("Mean accuracy for each fold line plot")
+    plt_filename = output_dir + "/graphs/mean_accuracy_k_fold_cross_validation.png"
+    pyplot.savefig(plt_filename)
     print("Saved the line plot of mean accuracy for k-fold cross validation " +  
-          "in the working directory successfully!")
+          "in the output directory successfully!")
     print("Chosing k =", optimal_k, " for cross validation...")
     
     kfold = KFold(n_splits=optimal_k, shuffle=True, random_state=1)
-    #train = train index, test = test index
     i = 0
     acc = []
+    # train = train index, test = test index
     for train, test in kfold.split(X_train, y_train):
         #get the xtrain, ytrain, ytest and xtest data based on the indices
         Xtrain = X_train.iloc[train] 
@@ -114,8 +118,54 @@ def cross_validate(training_data, model):
         i += 1
         print("Accuracy for fold", i, ":", acc_k)
     print("Mean accuracy: ", mean(acc))
-    pickle.dump(model, open('LR_model.pkl', 'wb'))
-    print("Saved model successfully!")
+    model_name = "/" + str(name) + "_model.pkl"
+    filename = output_dir + model_name
+    with open(filename,"wb") as f:
+        pickle.dump(model, f)
+    f.close()
+    print("Saved retrained model successfully!")
+    
+# Graph the validation curve for hyperparameter tuning
+def validation_curve(training_data, model_name, output_dir):
+    model = str(model_name)
+    n_jobs = 8
+    cv = 5
+    logx = False
+    
+    # Split training data
+    df = training_data
+    X_train = df.iloc[: , :-1]
+    y_raw = df.iloc[: , -1:]
+    y_train = np.ravel(y_raw)
+    print(len(X_train), len(y_train))
+    
+    if model == "LR":
+        clf = LogisticRegression(multi_class='ovr')
+        param_name = "C"
+        param_range=np.logspace(-6, 8, 8)
+        logx = True
+    elif model == "KNN":
+        clf_knn = KNeighborsClassifier()
+        clf = OneVsRestClassifier(KNeighborsClassifier())
+        param_name = "n_neighbors"
+    elif model == "RF":
+        clf_rf = RandomForestClassifier()
+        clf = OneVsRestClassifier(RandomForestClassifier())
+        param_name = "max_depth"
+    else:
+        clf_svm = SVC()
+        clf = OneVsRestClassifier(SVC())
+        param_name="gamma"
+        
+    print("-------------------------------------------------------")
+    print("Graphing the validation curve for " + model + "model...")
+    crossval_lr = ValidationCurve(clf, param_name, param_range, logx, cv, n_jobs)
+    crossval_lr.fit(X_train, y_train)
+    crossval_lr.show(outpath=output_dir + "graphs/" + model + "_crossval.png")
+    print("Saved the validation curve successfully in output directory!")
+        
+
+        
     
     
     
