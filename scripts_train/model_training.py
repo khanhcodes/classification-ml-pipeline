@@ -125,41 +125,43 @@ def cross_validate(training_data, model, output_dir, name):
     f.close()
     print("Saved retrained model successfully!")
     
+# Perform hyperparameter tuning for optimal parameter
+#def param_tuning(training_data, model_name, output_dir):
+    
+    
 # Graph the validation curve for hyperparameter tuning
 def validation_curve(training_data, model_name, output_dir):
     model = str(model_name)
-    n_jobs = 8
-    cv = 5
-    logx = False
     
     # Split training data
     df = training_data
     X_train = df.iloc[: , :-1]
     y_raw = df.iloc[: , -1:]
     y_train = np.ravel(y_raw)
-    print(len(X_train), len(y_train))
     
     if model == "LR":
         clf = LogisticRegression(multi_class='ovr')
         param_name = "C"
         param_range=np.logspace(-6, 8, 8)
-        logx = True
     elif model == "KNN":
-        clf_knn = KNeighborsClassifier()
-        clf = OneVsRestClassifier(KNeighborsClassifier())
+        clf = KNeighborsClassifier()
         param_name = "n_neighbors"
+        param_range = np.arange(1, 30, 1)
     elif model == "RF":
-        clf_rf = RandomForestClassifier()
-        clf = OneVsRestClassifier(RandomForestClassifier())
+        clf = RandomForestClassifier()
         param_name = "max_depth"
+        param_range = np.arange(1, 20, 1)
     else:
-        clf_svm = SVC()
-        clf = OneVsRestClassifier(SVC())
+        clf = SVC()
         param_name="gamma"
+        param_range = np.logspace(-6, -1, 12)
         
-    print("-------------------------------------------------------")
-    print("Graphing the validation curve for " + model + "model...")
-    crossval_lr = ValidationCurve(clf, param_name, param_range, logx, cv, n_jobs)
+    print("------------------------------------------------")
+    print("Graphing the validation curve for " + model + " model...")
+    if model == "LR" or "SVM":
+        crossval_lr = ValidationCurve(clf, param_name, param_range, logx=True, cv=5, n_jobs=8)
+    else:
+        crossval_lr = ValidationCurve(clf, param_name, param_range, logx=False, cv=5, n_jobs=8)
     crossval_lr.fit(X_train, y_train)
     crossval_lr.show(outpath=output_dir + "graphs/" + model + "_crossval.png")
     print("Saved the validation curve successfully in output directory!")
