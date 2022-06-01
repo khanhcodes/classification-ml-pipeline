@@ -13,6 +13,7 @@ import pickle
 
 from scripts_train.data_prepocessing import preprocess_data, preprocess_indep_test
 from scripts_train.model_training import train_model, validation_curve
+from scripts_train.indep_testing import indep_test
 
 # Prepocess training data
 
@@ -59,6 +60,12 @@ def main(argv=None):
         output_dir = output_dir + '/'
     else:
         output_dir = output_dir
+        
+    working_dir = args.working_dir
+    if not working_dir.endswith('/'):
+        working_dir = working_dir + '/'
+    else:
+        working_dir = working_dir
     
     ##Check whether the files are provided
     if args.train_data_location is not None:
@@ -83,15 +90,16 @@ def main(argv=None):
     
     # Prepocess training data
     df_train = preprocess_data(train_embeddings, train_meta)
-    #df_test = preprocess_indep_test(test_embeddings, test_meta)
+    df_test = preprocess_indep_test(test_embeddings, test_meta)
 
     if args.model_name is not None:
         model_name = args.model_name
         if model_name != 'LR' and model_name != 'KNN' and model_name != 'RF' and model_name != 'SVM':
             print("Please use one of 'LR', 'KNN', 'RF', 'SVM' to be model name")
         else: 
-            #train_model(df_train, model_name, output_dir)
-            validation_curve(df_train, model_name, output_dir)
+            train_model(df_train, model_name, output_dir, working_dir)
+            #validation_curve(df_train, model_name, output_dir)
+            indep_test(df_test, model_name, output_dir)
             
     else: 
         print("Please input a model name!")

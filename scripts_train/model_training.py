@@ -15,13 +15,13 @@ from sklearn.metrics import accuracy_score
 from matplotlib import pyplot
 import numpy as np
 from numpy import mean
-import pickle
+import joblib
 from pathlib import Path
 
 root = Path(".")
 
 # Train the model based on training data and return the model
-def train_model(training_data, model_name, output_dir):
+def train_model(training_data, model_name, output_dir, working_dir):
     df = training_data
     X_train = df.iloc[: , :-1]
     y_raw = df.iloc[: , -1:]
@@ -36,9 +36,12 @@ def train_model(training_data, model_name, output_dir):
         logReg_model = LogisticRegression(multi_class='ovr')
         print("Training the model...")
         logReg_model.fit(X_train_res, y_train_res)
+        temp_model = model_name + "_model.sav"
+        filename = working_dir + temp_model
+        joblib.dump(logReg_model, filename)
         print("Completed training logistic regression model!")
-        cross_validate(df, logReg_model, output_dir, model_name)
-        
+        cross_validate(df, filename, output_dir, model_name)
+    
     elif model_name == "KNN":
         knn_model = KNeighborsClassifier(n_neighbors=10)
         knn_ovr = OneVsRestClassifier(knn_model)
@@ -68,7 +71,7 @@ def save_model(path, filename):
     print("The complete path to the saved model is ", fullpath)
     
 # Perform a sensitivity analysis of k values and k-fold cross validation
-def cross_validate(training_data, model, output_dir, name):
+def cross_validate(training_data, temp_model_file, output_dir, name):
     df = training_data
     X_train = df.iloc[: , :-1]
     y_raw = df.iloc[: , -1:]
@@ -76,12 +79,13 @@ def cross_validate(training_data, model, output_dir, name):
     
     print("----------------------------------------------")
     print("Started configuring k-fold cross validation...")
-    folds = range(2, 3)
+    folds = range(2, 11)
     means, mins, maxs = list(),list(),list()
 
+    temp_model = joblib.load(temp_model_file)
     for k in folds:
         cv = KFold(n_splits=k, shuffle=True, random_state=1)
-        scores = cross_val_score(model, X_train, y_train, scoring='accuracy', cv=cv, n_jobs=5)
+        scores = cross_val_score(temp_model, X_train, y_train, scoring='accuracy', cv=cv, n_jobs=5)
         k_mean, k_min, k_max = mean(scores), scores.min(), scores.max()
         print('> folds=%d, accuracy=%.3f (%.3f,%.3f)' % (k, k_mean, k_min, k_max))
         means.append(k_mean)
@@ -111,18 +115,16 @@ def cross_validate(training_data, model, output_dir, name):
         ytrain = y_train[train]
         Xtest = X_train.iloc[test]
         ytest = y_train[test]
-        model.fit(Xtrain, ytrain)
-        y_pred = model.predict(Xtest)
+        temp_model.fit(Xtrain, ytrain)
+        y_pred = temp_model.predict(Xtest)
         acc_k = accuracy_score(ytest, y_pred)
         acc.append(acc_k)
         i += 1
         print("Accuracy for fold", i, ":", acc_k)
     print("Mean accuracy: ", mean(acc))
-    model_name = "/" + str(name) + "_model.pkl"
+    model_name = "/" + str(name) + "_finalized_model.sav"
     filename = output_dir + model_name
-    with open(filename,"wb") as f:
-        pickle.dump(model, f)
-    f.close()
+    joblib.dump(temp_model, filename)
     print("Saved retrained model successfully!")
     
 # Perform hyperparameter tuning for optimal parameter
